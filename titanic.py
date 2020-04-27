@@ -145,7 +145,7 @@ def extract_X_y(df):
 def train_model(model_type, X_train, y_train):
 
     if model_type == 'LogisticRegression':
-        model = LogisticRegression(penalty='l1', solver='liblinear')
+        model = LogisticRegression(penalty='l1', solver='liblinear', n_jobs=-1)
         # features = ['Survived', 'Pclass', 'Sex', 'SibSp', 'Parch', 'Title', 'title_class']
         # features = ['Survived', 'Pclass', 'Sex', 'SibSp', 'Parch', 'Title', 'title_class', 'Age']
         parameters = {'C':[.1, .3, .5, .75, 1, 1.25, 1.5, 3]}
@@ -157,7 +157,7 @@ def train_model(model_type, X_train, y_train):
         parameters = {'max_depth':[3, 4, 5, 6, 7, 8, 9, 10]}
 
     if model_type == 'KNeighborsClassifier':
-        model = KNeighborsClassifier()
+        model = KNeighborsClassifier(n_jobs=-1)
         # features = ['Survived', 'Pclass', 'Sex', 'SibSp', 'Parch', 'Title', 'title_class']
         parameters = {'n_neighbors':[25, 30, 35, 40, 45, 50]}
 
@@ -167,14 +167,14 @@ def train_model(model_type, X_train, y_train):
         parameters = {'C':[.001, .005, .01, .05, .1, 1, 10]}
 
     if model_type == 'RandomForestClassifier':
-        model = RandomForestClassifier()
+        model = RandomForestClassifier(n_jobs=-1)
         # features = ['Survived', 'Pclass', 'Sex', 'SibSp', 'Parch', 'Title', 'title_class']
-        parameters = {'max_depth':[5, 7, 10, 15, 20], 'n_estimators':[175, 200, 225]}
+        parameters = {'max_depth':[5, 7, 10], 'n_estimators':[250, 300, 350]}
 
     if model_type == 'XGBoost':
-        model = XGBClassifier()
+        model = XGBClassifier(n_jobs=-1)
         # features = ['Survived', 'Pclass', 'Sex', 'SibSp', 'Parch', 'Title', 'title_class']
-        parameters = {'max_depth':[3, 5, 7], 'n_estimators':[175, 200, 225]}
+        parameters = {'learning_rate':[.01, .05, .1], 'n_estimators':[100, 200, 300]}
 
     gridsearch = GridSearchCV(estimator=model, param_grid=parameters, cv=20, scoring='accuracy')
     gridsearch.fit(X_train, y_train)
