@@ -35,6 +35,46 @@ def concatenate_dataframes(df1, df2):
     return df
 
 
+def assign_grouped_title(x):
+    military = [' Capt', ' Col', ' Major']
+    don_donna = [' Don', ' Dona']
+    dr = [' Dr']
+    noble = [' Jonkheer', ' Sir', ' the Countess']
+    master = [' Master']
+    miss = [' Miss']
+    mme_mlle = [' Mme', ' Mlle']
+    mr = [' Mr']
+    mrs_ms_lady = [' Mrs', ' Ms', ' Lady']
+    rev = [' Rev']
+    if x in military:
+        return 'military'
+    elif x in don_donna:
+        return 'don_donna'
+    elif x in dr:
+        return 'dr'
+    elif x in noble:
+        return 'noble'
+    elif x in master:
+        return 'master'
+    elif x in miss:
+        return 'miss'
+    elif x in mme_mlle:
+        return 'mme_mlle'
+    elif x in mr:
+        return 'mr'
+    elif x in mrs_ms_lady:
+        return 'mrs_ms_lady'
+    elif x in rev:
+        return 'rev'
+
+
+def assign_group_title_class(title_, class_):
+    if title_ in ['mr', 'mrs_ms_lady', 'miss', 'master']:
+        return title_+'_'+class_
+    else:
+        return title_
+
+
 def create_features(df):
     
     # Extract Title from name
@@ -44,6 +84,12 @@ def create_features(df):
     # Group Title by low/high survival
     title_low_survival = [' Capt', ' Col', ' Don', ' Dona', ' Dr', ' Jonkheer', ' Major', ' Mr', ' Rev']
     df['Survival_by_title'] = df['Title'].apply(lambda x: 'high' if x not in title_low_survival else 'low')
+
+    # Granular Grouped  Title
+    df['granular_grouped_title'] = df['Title'].apply(assign_grouped_title)
+
+    # Grouped Title 'Mr, Mrs, Miss' & Pclass
+    df['title_class'] = df.apply(lambda x: assign_group_title_class(x['granular_grouped_title'], str(x['Pclass'])), axis=1)
 
     avg_fare = df[['Ticket', 'Fare']].groupby(by='Ticket').mean()
     counter = Counter(df['Ticket'])
@@ -74,7 +120,8 @@ def select_features(df, features):
 
 
 def convert_categorical(df, variables):
-    return pd.get_dummies(df, columns=variables)
+    # return pd.get_dummies(df, columns=variables)
+    return pd.get_dummies(df, columns=variables, drop_first=True)
 
 
 def extract_X_y(df):
@@ -90,8 +137,11 @@ def extract_X_y(df):
 def train_model(model_type, X_train, y_train):
 
     if model_type == 'LogisticRegression':
-        model = LogisticRegression()
-        parameters = {'C':[5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]}
+        model = LogisticRegression(penalty='l1', solver='liblinear')
+        # parameters = {'C':[5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]}
+        # parameters = {'C':[3, 5, 10, 15, 20, 30]}
+        # parameters = {'C':[.01, .05, .1, 1, 3]}
+        parameters = {'C':[.1, .3, .5, 3, 1]}
         
     
     if model_type == 'DecisionTreeClassifier':
@@ -100,13 +150,16 @@ def train_model(model_type, X_train, y_train):
 
     if model_type == 'KNeighborsClassifier':
         model = KNeighborsClassifier()
-        parameters = {'n_neighbors':[15, 17, 20, 22, 25, 27, 30]}
+        # parameters = {'n_neighbors':[15, 17, 20, 22, 25, 27, 30]}
+        parameters = {'n_neighbors':[25, 30, 40, 50]}
 
     if model_type == 'SVC':
         model = SVC()
-        parameters = {'C':[.05, .06, .07, .08, .09, .1]}
+        # parameters = {'C':[.05, .06, .07, .08, .09, .1]}
+        # parameters = {'C':[.05, .1, .15, .2, .25, .5]}
+        parameters = {'C':[.001, .01, .1, 1, 10]}
 
-    gridsearch = GridSearchCV(estimator=model, param_grid=parameters, cv=10, scoring='accuracy')
+    gridsearch = GridSearchCV(estimator=model, param_grid=parameters, cv=20, scoring='accuracy')
     gridsearch.fit(X_train, y_train)
     return gridsearch
 
