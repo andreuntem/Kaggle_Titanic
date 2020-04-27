@@ -17,6 +17,8 @@ from sklearn.model_selection import GridSearchCV
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.ensemble import RandomForestClassifier
+from xgboost import XGBClassifier
 from sklearn.svm import SVC
 from sklearn.metrics import accuracy_score
 
@@ -75,7 +77,7 @@ def assign_group_title_class(title_, class_):
         return title_
 
 
-def create_features(df):
+def create_features(df, standardize=False):
     
     # Extract Title from name
     df['Title'] = df['Name'].apply(lambda x: x.split(',')[1].split('.')[0])
@@ -91,6 +93,7 @@ def create_features(df):
     # Grouped Title 'Mr, Mrs, Miss' & Pclass
     df['title_class'] = df.apply(lambda x: assign_group_title_class(x['granular_grouped_title'], str(x['Pclass'])), axis=1)
 
+    # Average fare per person
     avg_fare = df[['Ticket', 'Fare']].groupby(by='Ticket').mean()
     counter = Counter(df['Ticket'])
     passenger_ticket = pd.DataFrame.from_dict(counter, orient='index', columns=['n_passenger'])
@@ -99,6 +102,7 @@ def create_features(df):
     df = pd.merge(df, avg_fare[['avg_fare']], how='left', left_on='Ticket', right_on='Ticket')
     df.drop(['Fare', 'Ticket'], axis=1, inplace=True)
 
+    # Mean age by class and sex
     sex_class_age = df[['Pclass','Sex','Age']].copy()
     sex_class_age['Pclass_Sex'] = sex_class_age['Pclass'].apply(str) + '_' + sex_class_age['Sex']
     avg_age = sex_class_age.groupby(by='Pclass_Sex').mean()[['Age']]
@@ -107,10 +111,14 @@ def create_features(df):
     df['Age'] = df[['Age_x', 'Age_y']].apply(lambda x: x['Age_x'] if x['Age_x']>0 else x['Age_y'], axis=1)
     df.drop(['Age_x', 'Age_y', 'Pclass_Sex'], axis=1, inplace=True)
 
+    # Median fare per person
     median_fare_class = df[['Pclass', 'avg_fare']].copy()
     median_fare_class = median_fare_class.groupby(by='Pclass').median()
     df = pd.merge(df, median_fare_class, how='left', left_on='Pclass', right_on='Pclass')
     df.drop(['avg_fare_x', 'avg_fare_y'], axis=1, inplace=True)
+
+    if standardize:
+        df['Age'] = (df['Age'] - df['Age'].mean())/df['Age'].std()
 
     return df
 
@@ -138,26 +146,35 @@ def train_model(model_type, X_train, y_train):
 
     if model_type == 'LogisticRegression':
         model = LogisticRegression(penalty='l1', solver='liblinear')
-        # parameters = {'C':[5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]}
-        # parameters = {'C':[3, 5, 10, 15, 20, 30]}
-        # parameters = {'C':[.01, .05, .1, 1, 3]}
-        parameters = {'C':[.1, .3, .5, 3, 1]}
-        
+        # features = ['Survived', 'Pclass', 'Sex', 'SibSp', 'Parch', 'Title', 'title_class']
+        # features = ['Survived', 'Pclass', 'Sex', 'SibSp', 'Parch', 'Title', 'title_class', 'Age']
+        parameters = {'C':[.1, .3, .5, .75, 1, 1.25, 1.5, 3]}
     
     if model_type == 'DecisionTreeClassifier':
         model = DecisionTreeClassifier()
+        # features = ['Survived', 'Pclass', 'Sex', 'SibSp', 'Parch', 'Title', 'title_class']
+        # features = ['Survived', 'Pclass', 'Sex', 'SibSp', 'Parch', 'Title', 'title_class', 'Age']
         parameters = {'max_depth':[3, 4, 5, 6, 7, 8, 9, 10]}
 
     if model_type == 'KNeighborsClassifier':
         model = KNeighborsClassifier()
-        # parameters = {'n_neighbors':[15, 17, 20, 22, 25, 27, 30]}
-        parameters = {'n_neighbors':[25, 30, 40, 50]}
+        # features = ['Survived', 'Pclass', 'Sex', 'SibSp', 'Parch', 'Title', 'title_class']
+        parameters = {'n_neighbors':[25, 30, 35, 40, 45, 50]}
 
     if model_type == 'SVC':
         model = SVC()
-        # parameters = {'C':[.05, .06, .07, .08, .09, .1]}
-        # parameters = {'C':[.05, .1, .15, .2, .25, .5]}
-        parameters = {'C':[.001, .01, .1, 1, 10]}
+        # features = ['Survived', 'Pclass', 'Sex', 'SibSp', 'Parch', 'Title', 'title_class']
+        parameters = {'C':[.001, .005, .01, .05, .1, 1, 10]}
+
+    if model_type == 'RandomForestClassifier':
+        model = RandomForestClassifier()
+        # features = ['Survived', 'Pclass', 'Sex', 'SibSp', 'Parch', 'Title', 'title_class']
+        parameters = {'max_depth':[5, 7, 10, 15, 20], 'n_estimators':[175, 200, 225]}
+
+    if model_type == 'XGBoost':
+        model = XGBClassifier()
+        # features = ['Survived', 'Pclass', 'Sex', 'SibSp', 'Parch', 'Title', 'title_class']
+        parameters = {'max_depth':[3, 5, 7], 'n_estimators':[175, 200, 225]}
 
     gridsearch = GridSearchCV(estimator=model, param_grid=parameters, cv=20, scoring='accuracy')
     gridsearch.fit(X_train, y_train)
