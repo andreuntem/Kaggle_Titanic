@@ -148,7 +148,7 @@ def train_model(model_type, X_train, y_train):
         model = LogisticRegression(penalty='l1', solver='liblinear', n_jobs=-1)
         # features = ['Survived', 'Pclass', 'Sex', 'SibSp', 'Parch', 'Title', 'title_class']
         # features = ['Survived', 'Pclass', 'Sex', 'SibSp', 'Parch', 'Title', 'title_class', 'Age']
-        parameters = {'C':[.1, .3, .5, .75, 1, 1.25, 1.5, 3]}
+        parameters = {'C':[.1, .3, .5, .75, 1, 1.25, 1.5]}
     
     if model_type == 'DecisionTreeClassifier':
         model = DecisionTreeClassifier()
@@ -164,17 +164,17 @@ def train_model(model_type, X_train, y_train):
     if model_type == 'SVC':
         model = SVC()
         # features = ['Survived', 'Pclass', 'Sex', 'SibSp', 'Parch', 'Title', 'title_class']
-        parameters = {'C':[.001, .005, .01, .05, .1, 1, 10]}
+        parameters = {'C':[.01, .05, .1, .5, 1], 'kernel':['rbf', 'linear', 'poly', 'sigmoid']}
 
     if model_type == 'RandomForestClassifier':
         model = RandomForestClassifier(n_jobs=-1)
         # features = ['Survived', 'Pclass', 'Sex', 'SibSp', 'Parch', 'Title', 'title_class']
-        parameters = {'max_depth':[5, 7, 10], 'n_estimators':[250, 300, 350]}
+        parameters = {'max_depth':[5, 7, 10], 'n_estimators':[250, 300, 400, 500, 600]}
 
     if model_type == 'XGBoost':
         model = XGBClassifier(n_jobs=-1)
         # features = ['Survived', 'Pclass', 'Sex', 'SibSp', 'Parch', 'Title', 'title_class']
-        parameters = {'learning_rate':[.01, .05, .1], 'n_estimators':[100, 200, 300]}
+        parameters = {'learning_rate':[.01, .05, .1], 'n_estimators':[50, 100, 150, 200]}
 
     gridsearch = GridSearchCV(estimator=model, param_grid=parameters, cv=20, scoring='accuracy')
     gridsearch.fit(X_train, y_train)
