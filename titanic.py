@@ -43,10 +43,10 @@ def assign_grouped_title(x):
     dr = [' Dr']
     noble = [' Jonkheer', ' Sir', ' the Countess']
     master = [' Master']
-    miss = [' Miss']
+    # miss = [' Miss']
     mme_mlle = [' Mme', ' Mlle']
     mr = [' Mr']
-    mrs_ms_lady = [' Mrs', ' Ms', ' Lady']
+    mrs_ms_lady = [' Mrs', ' Ms', ' Lady', ' Miss']
     rev = [' Rev']
     if x in military:
         return 'military'
@@ -58,8 +58,8 @@ def assign_grouped_title(x):
         return 'noble'
     elif x in master:
         return 'master'
-    elif x in miss:
-        return 'miss'
+    # elif x in miss:
+    #     return 'miss'
     elif x in mme_mlle:
         return 'mme_mlle'
     elif x in mr:
@@ -88,10 +88,10 @@ def create_features(df, standardize=False):
     df['Survival_by_title'] = df['Title'].apply(lambda x: 'high' if x not in title_low_survival else 'low')
 
     # Granular Grouped  Title
-    df['granular_grouped_title'] = df['Title'].apply(assign_grouped_title)
+    df['grouped_title'] = df['Title'].apply(assign_grouped_title)
 
     # Grouped Title 'Mr, Mrs, Miss' & Pclass
-    df['title_class'] = df.apply(lambda x: assign_group_title_class(x['granular_grouped_title'], str(x['Pclass'])), axis=1)
+    df['title_class'] = df.apply(lambda x: assign_group_title_class(x['grouped_title'], str(x['Pclass'])), axis=1)
 
     # Average fare per person
     avg_fare = df[['Ticket', 'Fare']].groupby(by='Ticket').mean()
@@ -103,13 +103,15 @@ def create_features(df, standardize=False):
     df.drop(['Fare', 'Ticket'], axis=1, inplace=True)
 
     # Mean age by class and sex
-    sex_class_age = df[['Pclass','Sex','Age']].copy()
-    sex_class_age['Pclass_Sex'] = sex_class_age['Pclass'].apply(str) + '_' + sex_class_age['Sex']
-    avg_age = sex_class_age.groupby(by='Pclass_Sex').mean()[['Age']]
-    df['Pclass_Sex'] = df['Pclass'].apply(str) + '_' + df['Sex']
-    df = pd.merge(df, avg_age, how='left', left_on='Pclass_Sex', right_on='Pclass_Sex')
+    sex_class_age = df[['grouped_title', 'Pclass','Sex','Age']].copy()
+    sex_class_age['GroupTitle_Pclass_Sex'] = sex_class_age['grouped_title'] + '_' + sex_class_age['Pclass'].apply(str) + '_' + sex_class_age['Sex']
+    # avg_age = sex_class_age.groupby(by='Pclass_Sex').mean()[['Age']]
+    # avg_age = sex_class_age.groupby(by='Pclass_Sex').median()[['Age']]
+    avg_age = sex_class_age.groupby(by='GroupTitle_Pclass_Sex').median()[['Age']]
+    df['GroupTitle_Pclass_Sex'] = df['grouped_title'] + '_' + df['Pclass'].apply(str) + '_' + df['Sex']
+    df = pd.merge(df, avg_age, how='left', left_on='GroupTitle_Pclass_Sex', right_on='GroupTitle_Pclass_Sex')
     df['Age'] = df[['Age_x', 'Age_y']].apply(lambda x: x['Age_x'] if x['Age_x']>0 else x['Age_y'], axis=1)
-    df.drop(['Age_x', 'Age_y', 'Pclass_Sex'], axis=1, inplace=True)
+    df.drop(['Age_x', 'Age_y', 'GroupTitle_Pclass_Sex'], axis=1, inplace=True)
 
     # Median fare per person
     median_fare_class = df[['Pclass', 'avg_fare']].copy()
@@ -128,8 +130,8 @@ def select_features(df, features):
 
 
 def convert_categorical(df, variables):
-    # return pd.get_dummies(df, columns=variables)
-    return pd.get_dummies(df, columns=variables, drop_first=True)
+    return pd.get_dummies(df, columns=variables)
+    # return pd.get_dummies(df, columns=variables, drop_first=True)
 
 
 def extract_X_y(df):
@@ -148,8 +150,10 @@ def train_model(model_type, X_train, y_train):
         model = LogisticRegression(penalty='l1', solver='liblinear', n_jobs=-1)
         # features = ['Survived', 'Pclass', 'Sex', 'SibSp', 'Parch', 'Title', 'title_class']
         # features = ['Survived', 'Pclass', 'Sex', 'SibSp', 'Parch', 'Title', 'title_class', 'Age']
-        parameters = {'C':[.1, .3, .5, .75, 1, 1.25, 1.5]}
-    
+        # parameters = {'C':[.1, .3, .5, .75, 1, 1.25, 1.5]}
+        # features = ['Survived', 'Pclass', 'Sex', 'SibSp', 'Parch', 'grouped_title', 'title_class']
+        parameters = {'C':[.3, .4, .5, .6, .7]}
+
     if model_type == 'DecisionTreeClassifier':
         model = DecisionTreeClassifier()
         # features = ['Survived', 'Pclass', 'Sex', 'SibSp', 'Parch', 'Title', 'title_class']
@@ -159,22 +163,28 @@ def train_model(model_type, X_train, y_train):
     if model_type == 'KNeighborsClassifier':
         model = KNeighborsClassifier(n_jobs=-1)
         # features = ['Survived', 'Pclass', 'Sex', 'SibSp', 'Parch', 'Title', 'title_class']
-        parameters = {'n_neighbors':[25, 30, 35, 40, 45, 50]}
+        parameters = {'n_neighbors':[25, 30, 40, 50]}
 
     if model_type == 'SVC':
         model = SVC()
         # features = ['Survived', 'Pclass', 'Sex', 'SibSp', 'Parch', 'Title', 'title_class']
-        parameters = {'C':[.01, .05, .1, .5, 1], 'kernel':['rbf', 'linear', 'poly', 'sigmoid']}
+        # parameters = {'C':[.01, .05, .1, .5, 1], 'kernel':['rbf', 'linear', 'poly', 'sigmoid']}
+        # features = ['Survived', 'Pclass', 'Sex', 'SibSp', 'Parch', 'grouped_title', 'title_class']
+        # parameters = {'C':[.09, .1, .15, .2], 'kernel':['rbf', 'linear']}
+        # Including Age feature
+        parameters = {'C':[.15, .2, .3, .4], 'kernel':['rbf']}
 
     if model_type == 'RandomForestClassifier':
         model = RandomForestClassifier(n_jobs=-1)
         # features = ['Survived', 'Pclass', 'Sex', 'SibSp', 'Parch', 'Title', 'title_class']
-        parameters = {'max_depth':[5, 7, 10], 'n_estimators':[250, 300, 400, 500, 600]}
+        parameters = {'max_depth':[3, 5, 7], 'n_estimators':[400, 500, 600]}
 
     if model_type == 'XGBoost':
         model = XGBClassifier(n_jobs=-1)
         # features = ['Survived', 'Pclass', 'Sex', 'SibSp', 'Parch', 'Title', 'title_class']
-        parameters = {'learning_rate':[.01, .05, .1], 'n_estimators':[50, 100, 150, 200]}
+        # parameters = {'learning_rate':[.01, .05, .1], 'n_estimators':[50, 100, 150, 200]}
+        # Including age
+        parameters = {'learning_rate':[.01, .05, .1], 'n_estimators':[40, 50, 60, 70, 90, 100]}
 
     gridsearch = GridSearchCV(estimator=model, param_grid=parameters, cv=20, scoring='accuracy')
     gridsearch.fit(X_train, y_train)
