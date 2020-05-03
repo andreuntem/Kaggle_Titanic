@@ -43,10 +43,10 @@ def assign_grouped_title(x):
     dr = [' Dr']
     noble = [' Jonkheer', ' Sir', ' the Countess']
     master = [' Master']
-    # miss = [' Miss']
+    miss = [' Miss']
     mme_mlle = [' Mme', ' Mlle']
     mr = [' Mr']
-    mrs_ms_lady = [' Mrs', ' Ms', ' Lady', ' Miss']
+    mrs_ms_lady = [' Mrs', ' Ms', ' Lady']
     rev = [' Rev']
     if x in military:
         return 'military'
@@ -58,8 +58,8 @@ def assign_grouped_title(x):
         return 'noble'
     elif x in master:
         return 'master'
-    # elif x in miss:
-    #     return 'miss'
+    elif x in miss:
+        return 'miss'
     elif x in mme_mlle:
         return 'mme_mlle'
     elif x in mr:
@@ -152,13 +152,13 @@ def train_model(model_type, X_train, y_train):
         # features = ['Survived', 'Pclass', 'Sex', 'SibSp', 'Parch', 'Title', 'title_class', 'Age']
         # parameters = {'C':[.1, .3, .5, .75, 1, 1.25, 1.5]}
         # features = ['Survived', 'Pclass', 'Sex', 'SibSp', 'Parch', 'grouped_title', 'title_class']
-        parameters = {'C':[.3, .4, .5, .6, .7]}
+        parameters = {'C':[.3, .35, .4, .45, .5]}
 
     if model_type == 'DecisionTreeClassifier':
         model = DecisionTreeClassifier()
         # features = ['Survived', 'Pclass', 'Sex', 'SibSp', 'Parch', 'Title', 'title_class']
         # features = ['Survived', 'Pclass', 'Sex', 'SibSp', 'Parch', 'Title', 'title_class', 'Age']
-        parameters = {'max_depth':[3, 4, 5, 6, 7, 8, 9, 10]}
+        parameters = {'max_depth':[3, 4, 5, 6, 7]}
 
     if model_type == 'KNeighborsClassifier':
         model = KNeighborsClassifier(n_jobs=-1)
@@ -172,19 +172,19 @@ def train_model(model_type, X_train, y_train):
         # features = ['Survived', 'Pclass', 'Sex', 'SibSp', 'Parch', 'grouped_title', 'title_class']
         # parameters = {'C':[.09, .1, .15, .2], 'kernel':['rbf', 'linear']}
         # Including Age feature
-        parameters = {'C':[.15, .2, .3, .4], 'kernel':['rbf']}
+        parameters = {'C':[.01, .05, .1, .2, .3], 'kernel':['rbf']}
 
     if model_type == 'RandomForestClassifier':
         model = RandomForestClassifier(n_jobs=-1)
         # features = ['Survived', 'Pclass', 'Sex', 'SibSp', 'Parch', 'Title', 'title_class']
-        parameters = {'max_depth':[3, 5, 7], 'n_estimators':[400, 500, 600]}
+        parameters = {'max_depth':[3, 5, 7], 'n_estimators':[100]}
 
     if model_type == 'XGBoost':
         model = XGBClassifier(n_jobs=-1)
         # features = ['Survived', 'Pclass', 'Sex', 'SibSp', 'Parch', 'Title', 'title_class']
         # parameters = {'learning_rate':[.01, .05, .1], 'n_estimators':[50, 100, 150, 200]}
         # Including age
-        parameters = {'learning_rate':[.01, .05, .1], 'n_estimators':[40, 50, 60, 70, 90, 100]}
+        parameters = {'learning_rate':[.01, .05, .1], 'n_estimators':[40, 50, 60]}
 
     gridsearch = GridSearchCV(estimator=model, param_grid=parameters, cv=20, scoring='accuracy')
     gridsearch.fit(X_train, y_train)
